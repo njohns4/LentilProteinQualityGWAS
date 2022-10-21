@@ -1,0 +1,55 @@
+#Change reference genome chromosome names from "Lcu.2RBY.Chr#" to "LCU.2RBY.CHR#"
+sed 's/Lcu.2RBY.Chr/LCU.2RBY.CHR/g' Lens_culinaris_2.0.fasta > Lentil2.0.fasta
+
+#Remove Duplicates and Rename samples to ILL no.
+#Test which duplicate to keep
+#Create a csv file with the VCF sample names (platemap) of the duplicates.
+#Generate a vcf file with only those samples
+vcftools --vcf ./../Lentil.vcf --keep Dup.csv --out Lentil.Dup --recode
+
+#Measure missingness and het on samples
+vcftools --vcf Lentil.Dup.recode.vcf --het
+vcftools --vcf Lentil.Dup.recode.vcf --missing-indv
+#Select the duplicates with the lowest missingness (check het) and record.
+
+#Place the names of the duplicates to remove in a csv file RemoveDup.csv
+vcftools --vcf ./../Lentil.vcf --remove RemoveDup.csv --out Lentil.RemoveDup --recode
+
+#Create csv file with old and new names in 1st column. https://samtools.github.io/bcftools/bcftools.html
+bcftools reheader --samples RenameSamples.csv -o Lentil.RemoveDup.RenameSamples.vcf Lentil.RemoveDup.recode.vcf
+
+#List Samples in VCF and save to file
+bcftools query -l Lentil.RemoveDup.RenameSamples.vcf > SamplesInVCF.txt
+
+#Remove UNITIG lines from VCF file.
+grep -v "UNITIG" Lentil.RemoveDup.RenameSamples.vcf > Lentil.clean.chrms.vcf
+
+#Filter for minor allele frequency, missing sites, and biallelic.
+#This also recodes the vcf in a format that GATK will work with.
+vcftools --vcf Lentil.clean.chrms.vcf --maf 0.05 --max-missing 0.2 --min-alleles 2 --max-alleles 2 --out Lentil.chrms.maf.mis.bial --recode
+#Kept 22,280 SNPs
+
+#Impute VCF file using Beagle. See ImputeScript.qsub. 
+#qsub batch jobs must be run from the scratch1 directory or they will give error email and no logs.
+#Cite Beagle 5.4 and B L Browning, Y Zhou, and S R Browning (2018).
+#A one-penny imputed genome from next generation reference panels.
+#Am J Hum Genet 103(3):338- 348. doi:10.1016/j.ajhg.2018.07.015
+
+#Filter for samples in study
+vcftools --gzvcf Lentil.imputed.vcf.gz --keep ./../AASamples.csv --out Lentil.imputed.AAsamples --recode
+#Kept 158 Samples which I also verified was correct in excel.
+
+#Count SNPs
+grep -v '#' Lentil.vcf | wc -l
+
+#Extract Inbreeding Coeff Info
+vcftools --vcf Lentil.vcftools.anoF.vcf --get-INFO InbreedingCoeff
+
+#BLUPs were calculated in R. See LentilAA.blups.R script.
+#GWAS was performed in GAPIT.
+ 
+#Rename Chromosomes. Create a file rename.chrms.csv with old-chrm-name new-name (one line per chrm).
+bgzip Lentil.imputed.AAsamples.vcftools.recode.vcf
+tabix -C Lentil.imputed.AAsamples.vcftools.recode.vcf.gz
+bcftools annotate --rename-chrs ./../rename.chrms.csv -o \
+Lentil.AAsamples.final.vcf Lentil.imputed.AAsamples.vcftools.recode.vcf.gz 
