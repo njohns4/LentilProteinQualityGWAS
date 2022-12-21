@@ -1,5 +1,5 @@
 # LentilProteinQualityGWAS
-## Code and data for Johnson et al. 2022 Lentil Protein Quality GWAS
+## Code and data for Johnson et al. 2023 Lentil Protein Quality GWAS
   #### Data_BayesBLUPs - data and bayesian random effect estimates used in study
   #### VCFProcessing - commands and scripts used for VCF processing
   #### GAPIT - scripts used for GAPIT genome-wide association studies
