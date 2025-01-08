@@ -1,6 +1,6 @@
 # Admixture, mapPies, and PCA plots for 
-# Protein Quality GWAS Paper (Johnson et al. 2022)
-# Submitted to G3
+# Protein Quality GWAS Paper (Johnson et al.)
+# https://doi.org/10.1002/ppp3.10470
 
 # Libraries
 library(plyr)
